@@ -18,25 +18,28 @@ model User {
   role         String
   createdAt    DateTime @default(now())
 
-  student  Student?
-  teacher  Teacher?
-  sessions Session[]
+  student      Student?
+  teacher      Teacher?
+  sessions     Session[]
+  ownedQuizzes Quiz[]
 }
 
 model Class {
-  id       String    @id @default(cuid())
-  name     String    @unique
+  id       String      @id @default(cuid())
+  name     String      @unique
   students Student[]
+  quizzes  QuizClass[]
 }
 
 model Student {
-  id        String  @id @default(cuid())
-  userId    String  @unique
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   classId   String
-  class     Class   @relation(fields: [classId], references: [id])
-  studentId String  @unique
+  class     Class     @relation(fields: [classId], references: [id])
+  studentId String    @unique
   email     String?
+  attempts  Attempt[]
 }
 
 model Teacher {
@@ -52,4 +55,77 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   expiresAt DateTime
+}
+
+// status is one of "DRAFT" | "PUBLISHED" (plain string column, same convention as User.role).
+// Once any Attempt exists for a quiz, the whole quiz (shell + questions + options) is locked —
+// see src/quiz/lock.ts — per FR-014/decision #5 in PLAN.md.
+model Quiz {
+  id               String   @id @default(cuid())
+  ownerId          String
+  owner            User     @relation(fields: [ownerId], references: [id])
+  title            String
+  timeLimitMinutes Int      @default(20)
+  openAt           DateTime
+  closeAt          DateTime
+  negativeMarking  Boolean  @default(false)
+  penaltyFraction  Float    @default(0)
+  status           String   @default("DRAFT")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  classes   QuizClass[]
+  questions Question[]
+  attempts  Attempt[]
+}
+
+model QuizClass {
+  quizId  String
+  quiz    Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  classId String
+  class   Class  @relation(fields: [classId], references: [id])
+
+  @@id([quizId, classId])
+}
+
+model Question {
+  id     String @id @default(cuid())
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  order  Int
+  text   String
+  points Float
+
+  options Option[]
+
+  @@unique([quizId, order])
+}
+
+model Option {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  order      Int
+  text       String
+  isCorrect  Boolean  @default(false)
+
+  @@unique([questionId, order])
+}
+
+// Full attempt-taking flow (Answer table, start-attempt endpoint, etc.) arrives in Phase 3.
+// The table exists from this migration on so the single-attempt unique constraint and the
+// Phase 2 lock rule (FR-014) never need a later, riskier migration — see PLAN.md decision #5.
+model Attempt {
+  id             String    @id @default(cuid())
+  studentId      String
+  student        Student   @relation(fields: [studentId], references: [id])
+  quizId         String
+  quiz           Quiz      @relation(fields: [quizId], references: [id])
+  startedAt      DateTime  @default(now())
+  deadline       DateTime
+  submittedAt    DateTime?
+  submissionType String?
+  score          Float?
+
+  @@unique([studentId, quizId])
 }
