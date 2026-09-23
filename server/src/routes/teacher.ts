@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from '../auth/middleware.js';
 import { prisma } from '../db.js';
 import { finalizeIfExpired } from '../quiz/finalize.js';
 import { isQuizLocked } from '../quiz/lock.js';
+import { getQuizResults, resultsToCsv } from '../quiz/results.js';
 import { validateQuestions, validateQuizShell } from '../quiz/validation.js';
 
 const router = Router();
@@ -232,6 +233,30 @@ router.get('/quizzes/:id/attempts', async (req, res) => {
       score: attempt.score,
     })),
   });
+});
+
+// FR-040/FR-041/FR-042: full roster (every target-class student, including not-attempted),
+// summary stats, and per-question % correct — the Phase 5 successor to the minimal /attempts
+// list above.
+router.get('/quizzes/:id/results', async (req, res) => {
+  const quiz = await loadOwnedQuiz(req.params.id, req.user!);
+  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+  const results = await getQuizResults(quiz.id);
+  res.json(results);
+});
+
+// FR-043: CSV export with a UTF-8 BOM so Arabic names survive opening the file in Excel.
+router.get('/quizzes/:id/results/export', async (req, res) => {
+  const quiz = await loadOwnedQuiz(req.params.id, req.user!);
+  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+  const results = await getQuizResults(quiz.id);
+  const csv = resultsToCsv(results);
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="results-${quiz.id}.csv"`);
+  res.send(csv);
 });
 
 router.post('/quizzes/:id/publish', async (req, res) => {

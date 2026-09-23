@@ -229,3 +229,47 @@ export interface TeacherAttemptSummary {
 export function listQuizAttempts(quizId: string) {
   return request<{ attempts: TeacherAttemptSummary[] }>(`/teacher/quizzes/${quizId}/attempts`);
 }
+
+export type AttemptStatus = 'NOT_ATTEMPTED' | 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
+
+export interface ResultsRosterRow {
+  studentId: string;
+  nameAr: string | null;
+  nameEn: string | null;
+  className: string;
+  status: AttemptStatus;
+  score: number | null;
+  startedAt: string | null;
+  submittedAt: string | null;
+}
+
+export interface QuestionStat {
+  questionId: string;
+  order: number;
+  text: string;
+  percentCorrect: number | null;
+}
+
+export interface QuizResults {
+  quizId: string;
+  title: string;
+  maxScore: number;
+  roster: ResultsRosterRow[];
+  summary: {
+    totalStudents: number;
+    attempted: number;
+    scored: number;
+    average: number | null;
+    highest: number | null;
+    lowest: number | null;
+  };
+  questionStats: QuestionStat[];
+}
+
+export function getQuizResults(quizId: string) {
+  return request<QuizResults>(`/teacher/quizzes/${quizId}/results`);
+}
+
+export function quizResultsExportUrl(quizId: string) {
+  return `/api/teacher/quizzes/${quizId}/results/export`;
+}
