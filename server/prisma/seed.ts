@@ -13,6 +13,11 @@ async function main() {
     update: {},
     create: { name: '10A' },
   });
+  await prisma.class.upsert({
+    where: { name: '10B' },
+    update: {},
+    create: { name: '10B' },
+  });
 
   const student = await prisma.user.upsert({
     where: { username: '1001' },
@@ -47,6 +52,21 @@ async function main() {
     },
   });
 
+  const teacher2 = await prisma.user.upsert({
+    where: { username: 'teacher2@nourscentre.test' },
+    update: {},
+    create: {
+      username: 'teacher2@nourscentre.test',
+      passwordHash,
+      role: 'TEACHER',
+      nameAr: 'ليلى عمر',
+      nameEn: 'Layla Omar',
+      teacher: {
+        create: { email: 'teacher2@nourscentre.test' },
+      },
+    },
+  });
+
   const admin = await prisma.user.upsert({
     where: { username: 'nour@nourscentre.test' },
     update: {},
@@ -60,9 +80,10 @@ async function main() {
   });
 
   console.log('Seeded sample users (password for all: "password123"):');
-  console.log(`  student: ${student.username}`);
-  console.log(`  teacher: ${teacher.username}`);
-  console.log(`  admin:   ${admin.username}`);
+  console.log(`  student:  ${student.username}`);
+  console.log(`  teacher:  ${teacher.username}`);
+  console.log(`  teacher2: ${teacher2.username}`);
+  console.log(`  admin:    ${admin.username}`);
 }
 
 main()
