@@ -248,7 +248,12 @@ export function QuizEditor() {
 
         {locked && (
           <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
-            <h2 className="text-base font-semibold text-gray-900">Results</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900">Results</h2>
+              <Link to={`/teacher/quizzes/${id}/results`} className="text-sm text-blue-600 hover:underline">
+                Full results &rarr;
+              </Link>
+            </div>
             {attemptsQuery.isLoading && <p className="text-sm text-gray-500">Loading…</p>}
             {attemptsQuery.data && (
               <div className="overflow-x-auto">

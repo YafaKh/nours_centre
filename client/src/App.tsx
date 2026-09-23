@@ -4,6 +4,7 @@ import { StudentDashboard } from './pages/StudentDashboard';
 import { QuizTaking } from './pages/QuizTaking';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { QuizEditor } from './pages/QuizEditor';
+import { QuizResults } from './pages/QuizResults';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -40,6 +41,14 @@ export function App() {
         element={
           <ProtectedRoute role="TEACHER">
             <QuizEditor />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/quizzes/:id/results"
+        element={
+          <ProtectedRoute role="TEACHER">
+            <QuizResults />
           </ProtectedRoute>
         }
       />

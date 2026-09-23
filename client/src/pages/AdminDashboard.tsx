@@ -11,10 +11,10 @@ export function AdminDashboard() {
         >
           <span className="font-medium text-gray-900">Quizzes</span>
           <p className="mt-1 text-sm text-gray-500">
-            View and edit every teacher's quizzes, or create a new one.
+            View and edit every teacher's quizzes, see results, or create a new one.
           </p>
         </Link>
-        <p className="text-sm text-gray-500">Results, user management, and imports arrive in a later phase.</p>
+        <p className="text-sm text-gray-500">User management and spreadsheet imports arrive in a later phase.</p>
       </div>
     </DashboardLayout>
   );
