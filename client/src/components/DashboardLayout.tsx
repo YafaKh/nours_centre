@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { displayName } from '../lib/name';
 
 const HOME_ROUTE_BY_ROLE: Record<string, string> = {
   STUDENT: '/student',
@@ -14,7 +15,7 @@ export function DashboardLayout({ title, children }: { title: string; children: 
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  const displayName = user?.nameEn || user?.nameAr || user?.username;
+  const userDisplayName = user ? displayName(user.nameEn, user.nameAr, user.username) : undefined;
   const homeRoute = user ? HOME_ROUTE_BY_ROLE[user.role] : undefined;
 
   async function handleLogout() {
@@ -37,11 +38,13 @@ export function DashboardLayout({ title, children }: { title: string; children: 
               Home
             </Link>
           )}
-          <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+          <h1 dir="auto" className="text-lg font-semibold text-gray-900">
+            {title}
+          </h1>
         </div>
         <div className="flex items-center gap-3">
           <span dir="auto" className="text-sm text-gray-600">
-            {displayName}
+            {userDisplayName}
           </span>
           <button
             onClick={handleLogout}

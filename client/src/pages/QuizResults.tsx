@@ -67,7 +67,8 @@ export function QuizResults() {
               <table className="w-full text-start text-sm">
                 <thead>
                   <tr className="border-b border-gray-200 text-gray-500">
-                    <th className="p-2 text-start font-medium">Student</th>
+                    <th className="p-2 text-start font-medium">Name (Arabic)</th>
+                    <th className="p-2 text-start font-medium">Name (English)</th>
                     <th className="p-2 text-start font-medium">Class</th>
                     <th className="p-2 text-start font-medium">Status</th>
                     <th className="p-2 text-start font-medium">Score</th>
@@ -77,8 +78,11 @@ export function QuizResults() {
                 <tbody>
                   {results.roster.map((r) => (
                     <tr key={r.studentId} className="border-b border-gray-100">
-                      <td className="p-2">
-                        <span dir="auto">{r.nameEn || r.nameAr || r.studentId}</span>
+                      <td dir="auto" className="p-2">
+                        {r.nameAr || '—'}
+                      </td>
+                      <td dir="auto" className="p-2">
+                        {r.nameEn || '—'}
                       </td>
                       <td className="p-2 text-gray-700">{r.className}</td>
                       <td className="p-2">
@@ -94,7 +98,7 @@ export function QuizResults() {
                   ))}
                   {results.roster.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="p-3 text-center text-gray-500">
+                      <td colSpan={6} className="p-3 text-center text-gray-500">
                         No students in this quiz's target classes.
                       </td>
                     </tr>

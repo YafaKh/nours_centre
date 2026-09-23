@@ -17,6 +17,7 @@ import {
   type QuizShellInput,
 } from '../api/client';
 import { DashboardLayout } from '../components/DashboardLayout';
+import { displayName } from '../lib/name';
 import { ammanLocalInputToIso, isoToAmmanLocalInput } from '../lib/time';
 
 interface ShellForm {
@@ -260,11 +261,7 @@ export function QuizEditor() {
             >
               {quizQuery.data.status}
             </span>
-            {owner && (
-              <span dir="auto">
-                Owner: {owner.nameEn || owner.nameAr || owner.username}
-              </span>
-            )}
+            {owner && <span dir="auto">Owner: {displayName(owner.nameEn, owner.nameAr, owner.username)}</span>}
           </div>
         )}
 
@@ -289,7 +286,8 @@ export function QuizEditor() {
                 <table className="w-full text-start text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 text-gray-500">
-                      <th className="py-1.5 pe-3 text-start font-medium">Student</th>
+                      <th className="py-1.5 pe-3 text-start font-medium">Name (Arabic)</th>
+                      <th className="py-1.5 pe-3 text-start font-medium">Name (English)</th>
                       <th className="py-1.5 pe-3 text-start font-medium">Status</th>
                       <th className="py-1.5 text-start font-medium">Score</th>
                     </tr>
@@ -297,8 +295,11 @@ export function QuizEditor() {
                   <tbody>
                     {attemptsQuery.data.attempts.map((a) => (
                       <tr key={a.id} className="border-b border-gray-100">
-                        <td className="py-1.5 pe-3">
-                          <span dir="auto">{a.student.nameEn || a.student.nameAr || a.student.studentId}</span>
+                        <td dir="auto" className="py-1.5 pe-3">
+                          {a.student.nameAr || '—'}
+                        </td>
+                        <td dir="auto" className="py-1.5 pe-3">
+                          {a.student.nameEn || '—'}
                         </td>
                         <td className="py-1.5 pe-3 text-gray-700">{attemptStatusLabel(a.submittedAt, a.submissionType)}</td>
                         <td className="py-1.5 text-gray-700">{a.score ?? '—'}</td>

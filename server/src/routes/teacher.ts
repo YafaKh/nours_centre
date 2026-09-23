@@ -10,6 +10,7 @@ import { buildTemplateXlsx, XLSX_CONTENT_TYPE } from '../import/columns.js';
 import { EmptyFileError } from '../import/parse.js';
 import { parseQuizQuestionsFile, QUIZ_QUESTION_COLUMNS } from '../import/quizQuestions.js';
 import { upload } from '../import/upload.js';
+import { displayName } from '../lib/displayName.js';
 
 const router = Router();
 // Admin has all teacher abilities (FR-007), so both roles pass here.
@@ -259,8 +260,9 @@ router.get('/quizzes/:id/attempts', async (req, res) => {
   // immediately, without waiting for the sweep.
   const finalized = await Promise.all(attempts.map((a) => finalizeIfExpired(a)));
 
-  res.json({
-    attempts: finalized.map((attempt, i) => ({
+  // FR-068: sorting uses the displayed name (name_en, else name_ar).
+  const rows = finalized
+    .map((attempt, i) => ({
       id: attempt.id,
       student: {
         studentId: attempts[i].student.studentId,
@@ -272,7 +274,15 @@ router.get('/quizzes/:id/attempts', async (req, res) => {
       submittedAt: attempt.submittedAt,
       submissionType: attempt.submissionType,
       score: attempt.score,
-    })),
+    }))
+    .sort((a, b) =>
+      displayName(a.student.nameEn, a.student.nameAr, a.student.studentId).localeCompare(
+        displayName(b.student.nameEn, b.student.nameAr, b.student.studentId),
+      ),
+    );
+
+  res.json({
+    attempts: rows,
   });
 });
 

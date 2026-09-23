@@ -10,6 +10,7 @@ import { STUDENT_COLUMNS, importStudents } from '../import/students.js';
 import { TEACHER_COLUMNS, importTeachers } from '../import/teachers.js';
 import { generateTempPassword } from '../import/tempPassword.js';
 import { upload } from '../import/upload.js';
+import { displayName } from '../lib/displayName.js';
 
 const router = Router();
 router.use(requireAuth, requireRole('ADMIN'));
@@ -82,9 +83,31 @@ router.get('/students', async (_req, res) => {
       className: s.class.name,
       username: s.user.username,
     }))
-    .sort((a, b) => (a.nameEn || a.nameAr || a.studentId).localeCompare(b.nameEn || b.nameAr || b.studentId));
+    .sort((a, b) =>
+      displayName(a.nameEn, a.nameAr, a.studentId).localeCompare(displayName(b.nameEn, b.nameAr, b.studentId)),
+    );
 
   res.json({ students: rows });
+});
+
+// A simple teacher list (name, email, username) admin can browse. FR-067: admin tables show
+// both name columns.
+router.get('/teachers', async (_req, res) => {
+  const teachers = await prisma.teacher.findMany({
+    include: { user: true },
+  });
+
+  const rows = teachers
+    .map((t) => ({
+      id: t.id,
+      nameAr: t.user.nameAr,
+      nameEn: t.user.nameEn,
+      email: t.email,
+      username: t.user.username,
+    }))
+    .sort((a, b) => displayName(a.nameEn, a.nameAr, a.email).localeCompare(displayName(b.nameEn, b.nameAr, b.email)));
+
+  res.json({ teachers: rows });
 });
 
 // FR-054/A4: generates a new temporary password, invalidates the student's existing session(s)

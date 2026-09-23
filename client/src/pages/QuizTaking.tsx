@@ -130,6 +130,7 @@ export function QuizTaking() {
         </Link>
 
         <div
+          data-testid="quiz-timer"
           className={`sticky top-0 z-10 flex items-center justify-between rounded-md border p-3 text-sm font-semibold shadow-sm ${
             locked ? 'border-red-300 bg-red-50 text-red-800' : 'border-blue-300 bg-blue-50 text-blue-800'
           }`}
@@ -213,10 +214,11 @@ export function QuizTaking() {
           <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/40 sm:items-center">
             <div className="w-full max-w-sm space-y-4 rounded-t-lg bg-white p-5 sm:rounded-lg">
               <p className="text-base font-medium text-gray-900">Submit this quiz?</p>
+              <p className="text-sm text-gray-600">You can't change your answers after submitting.</p>
               {unansweredCount > 0 && (
-                <p className="text-sm text-amber-700">
-                  You have {unansweredCount} unanswered question{unansweredCount === 1 ? '' : 's'}. You can't change
-                  answers after submitting.
+                <p className="text-sm font-medium text-amber-700">
+                  Warning: you have {unansweredCount} unanswered question{unansweredCount === 1 ? '' : 's'}. They will
+                  score 0.
                 </p>
               )}
               <div className="flex gap-3">
