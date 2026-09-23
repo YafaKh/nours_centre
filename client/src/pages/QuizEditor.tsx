@@ -1,15 +1,18 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ApiError,
   createQuiz,
   getQuiz,
+  importQuizQuestionsFile,
   listClasses,
   listQuizAttempts,
   publishQuiz,
+  quizQuestionsTemplateUrl,
   setQuizQuestions,
   updateQuiz,
+  type ApiErrorDetail,
   type QuestionDraft,
   type QuizShellInput,
 } from '../api/client';
@@ -82,6 +85,9 @@ export function QuizEditor() {
   const [shellError, setShellError] = useState<string | null>(null);
   const [questionsError, setQuestionsErrorState] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const importFileInput = useRef<HTMLInputElement>(null);
+  const [importPending, setImportPending] = useState(false);
+  const [importErrors, setImportErrors] = useState<ApiErrorDetail[] | null>(null);
 
   useEffect(() => {
     const quiz = quizQuery.data;
@@ -205,6 +211,29 @@ export function QuizEditor() {
     setQuestionsErrorState(null);
     setNotice(null);
     questionsMutation.mutate(questions, { onError: (err) => setQuestionsErrorState(describeError(err)) });
+  }
+
+  async function handleImportQuestions() {
+    const file = importFileInput.current?.files?.[0];
+    if (!file || isNew) return;
+    setImportPending(true);
+    setImportErrors(null);
+    setNotice(null);
+    try {
+      await importQuizQuestionsFile(id!, file);
+      setNotice('Questions imported.');
+      if (importFileInput.current) importFileInput.current.value = '';
+      queryClient.invalidateQueries({ queryKey: ['quiz', id] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+    } catch (err) {
+      if (err instanceof ApiError && err.details.length > 0) {
+        setImportErrors(err.details);
+      } else {
+        setImportErrors([{ field: 'file', message: describeError(err) }]);
+      }
+    } finally {
+      setImportPending(false);
+    }
   }
 
   function handlePublish() {
@@ -403,6 +432,42 @@ export function QuizEditor() {
             {isNew ? 'Create quiz' : 'Save details'}
           </button>
         </form>
+
+        {!isNew && (
+          <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900">Import questions from file</h2>
+              <a href={quizQuestionsTemplateUrl} className="text-sm text-blue-600 hover:underline">
+                Download template
+              </a>
+            </div>
+            <p className="text-sm text-gray-500">
+              CSV or XLSX with columns: question_no, question_text, option_a-d, correct (A-D), points. Replaces this
+              quiz's entire question set.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input ref={importFileInput} type="file" accept=".csv,.xlsx" disabled={locked} className="text-sm" />
+              <button
+                type="button"
+                onClick={handleImportQuestions}
+                disabled={locked || importPending}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-60"
+              >
+                {importPending ? 'Importing…' : 'Import'}
+              </button>
+            </div>
+            {importErrors && (
+              <div role="alert" className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+                <p className="mb-1 font-medium">Nothing was saved — fix these rows and re-upload:</p>
+                <ul className="list-inside list-disc space-y-0.5">
+                  {importErrors.map((e, i) => (
+                    <li key={i}>{e.message}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         {!isNew && (
           <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">

@@ -6,6 +6,8 @@ import { TeacherDashboard } from './pages/TeacherDashboard';
 import { QuizEditor } from './pages/QuizEditor';
 import { QuizResults } from './pages/QuizResults';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminImport } from './pages/AdminImport';
+import { AdminStudents } from './pages/AdminStudents';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export function App() {
@@ -57,6 +59,22 @@ export function App() {
         element={
           <ProtectedRoute role="ADMIN">
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/students"
+        element={
+          <ProtectedRoute role="ADMIN">
+            <AdminStudents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/import"
+        element={
+          <ProtectedRoute role="ADMIN">
+            <AdminImport />
           </ProtectedRoute>
         }
       />

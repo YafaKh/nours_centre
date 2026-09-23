@@ -3,8 +3,13 @@ import { requireAuth, requireRole } from '../auth/middleware.js';
 import { prisma } from '../db.js';
 import { finalizeIfExpired } from '../quiz/finalize.js';
 import { isQuizLocked } from '../quiz/lock.js';
+import { replaceQuizQuestions } from '../quiz/questions.js';
 import { getQuizResults, resultsToCsv } from '../quiz/results.js';
 import { validateQuestions, validateQuizShell } from '../quiz/validation.js';
+import { buildTemplateXlsx, XLSX_CONTENT_TYPE } from '../import/columns.js';
+import { EmptyFileError } from '../import/parse.js';
+import { parseQuizQuestionsFile, QUIZ_QUESTION_COLUMNS } from '../import/quizQuestions.js';
+import { upload } from '../import/upload.js';
 
 const router = Router();
 // Admin has all teacher abilities (FR-007), so both roles pass here.
@@ -177,21 +182,57 @@ router.put('/quizzes/:id/questions', async (req, res) => {
     return res.status(400).json({ error: 'Invalid questions', details: result.errors });
   }
   const questions = result.value!;
+  await replaceQuizQuestions(quiz.id, questions);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.question.deleteMany({ where: { quizId: quiz.id } });
-    for (const q of questions) {
-      await tx.question.create({
-        data: {
-          quizId: quiz.id,
-          order: q.order,
-          text: q.text,
-          points: q.points,
-          options: { create: q.options.map((o) => ({ order: o.order, text: o.text, isCorrect: o.isCorrect })) },
-        },
-      });
-    }
+  const full = await prisma.quiz.findUniqueOrThrow({
+    where: { id: quiz.id },
+    include: { questions: { orderBy: { order: 'asc' }, include: { options: { orderBy: { order: 'asc' } } } } },
   });
+
+  res.json({ questions: full.questions });
+});
+
+// FR-052a: template's header/example rows come straight from the column definitions the
+// importer below validates against, so the two can never drift apart.
+router.get('/import/quiz-questions/template', (_req, res) => {
+  const xlsx = buildTemplateXlsx(QUIZ_QUESTION_COLUMNS);
+  res.setHeader('Content-Type', XLSX_CONTENT_TYPE);
+  res.setHeader('Content-Disposition', 'attachment; filename="quiz-questions-template.xlsx"');
+  res.send(xlsx);
+});
+
+// FR-055/PLAN.md decision #8: carries only the question list — the quiz shell must already
+// exist (created via the form above) — and is gated by the same lock rule as manual edits
+// (FR-014), so it can't be used to bypass it. A valid file fully replaces the question set
+// (decision #8: there's no stable row identity to diff/merge against).
+router.post('/quizzes/:id/questions/import', upload.single('file'), async (req, res) => {
+  const quiz = await loadOwnedQuiz(req.params.id, req.user!);
+  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+  if (await isQuizLocked(quiz.id)) {
+    return res.status(409).json({ error: 'Quiz is locked: a student has already started it' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  let questions;
+  try {
+    const result = parseQuizQuestionsFile(req.file.buffer);
+    if (result.errors.length > 0) {
+      return res.status(400).json({ error: 'Invalid questions file', details: result.errors });
+    }
+    questions = result.value!;
+  } catch (err) {
+    if (err instanceof EmptyFileError) {
+      return res.status(400).json({ error: 'Invalid questions file', details: [{ row: 0, field: 'file', message: err.message }] });
+    }
+    console.error('questions import failed', err);
+    return res.status(400).json({ error: 'Could not read the uploaded file. Make sure it is a valid CSV or XLSX file.' });
+  }
+
+  await replaceQuizQuestions(quiz.id, questions);
 
   const full = await prisma.quiz.findUniqueOrThrow({
     where: { id: quiz.id },

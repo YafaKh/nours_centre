@@ -39,6 +39,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Like `request`, but for a multipart file upload — no Content-Type header, so the browser
+ * sets the multipart boundary itself. */
+async function uploadFile<T>(path: string, file: File): Promise<T> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`/api${path}`, { method: 'POST', credentials: 'include', body: formData });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.error ?? `Request failed with status ${res.status}`, body.details ?? []);
+  }
+  return res.json() as Promise<T>;
+}
+
 export function login(username: string, password: string) {
   return request<{ user: CurrentUser }>('/auth/login', {
     method: 'POST',
@@ -272,4 +286,56 @@ export function getQuizResults(quizId: string) {
 
 export function quizResultsExportUrl(quizId: string) {
   return `/api/teacher/quizzes/${quizId}/results/export`;
+}
+
+// --- Phase 6: spreadsheet import ---
+
+export interface ImportStudentsSummary {
+  created: number;
+  updated: number;
+  newPasswords: { studentId: string; username: string; password: string }[];
+}
+
+export function importStudentsFile(file: File) {
+  return uploadFile<ImportStudentsSummary>('/admin/import/students', file);
+}
+
+export const studentsTemplateUrl = '/api/admin/import/students/template';
+
+export interface ImportTeachersSummary {
+  created: number;
+  updated: number;
+  newPasswords: { email: string; password: string }[];
+}
+
+export function importTeachersFile(file: File) {
+  return uploadFile<ImportTeachersSummary>('/admin/import/teachers', file);
+}
+
+export const teachersTemplateUrl = '/api/admin/import/teachers/template';
+
+export const quizQuestionsTemplateUrl = '/api/teacher/import/quiz-questions/template';
+
+export function importQuizQuestionsFile(quizId: string, file: File) {
+  return uploadFile<{ questions: QuizDetail['questions'] }>(`/teacher/quizzes/${quizId}/questions/import`, file);
+}
+
+export interface AdminStudentRow {
+  id: string;
+  studentId: string;
+  nameAr: string | null;
+  nameEn: string | null;
+  className: string;
+  username: string;
+}
+
+export function listAdminStudents() {
+  return request<{ students: AdminStudentRow[] }>('/admin/students');
+}
+
+export function resetStudentPassword(studentRowId: string) {
+  return request<{ studentId: string; username: string; password: string }>(
+    `/admin/students/${studentRowId}/reset-password`,
+    { method: 'POST' },
+  );
 }
