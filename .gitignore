@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.env
+*.local
+
+# SQLite dev databases
+server/prisma/*.db
+server/prisma/*.db-journal
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+
+# TypeScript build info
+*.tsbuildinfo

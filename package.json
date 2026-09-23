@@ -1,0 +1,21 @@
+{
+  "name": "nour-quiz-system",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20.11.0 <21"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "setup": "npm run --workspace server prisma:migrate && npm run --workspace server seed",
+    "dev": "concurrently -k -n server,client -c blue,green \"npm run --workspace server dev\" \"npm run --workspace client dev\"",
+    "build": "npm run --workspace server build && npm run --workspace client build",
+    "test": "npm run --workspace server test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

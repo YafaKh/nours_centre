@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// role is one of "STUDENT" | "TEACHER" | "ADMIN" (validated in application code —
+// SQLite has no native enum type, so we keep this as a plain string column).
+model User {
+  id           String   @id @default(cuid())
+  nameAr       String?
+  nameEn       String?
+  username     String   @unique
+  passwordHash String
+  role         String
+  createdAt    DateTime @default(now())
+
+  student  Student?
+  teacher  Teacher?
+  sessions Session[]
+}
+
+model Class {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  students Student[]
+}
+
+model Student {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classId   String
+  class     Class   @relation(fields: [classId], references: [id])
+  studentId String  @unique
+  email     String?
+}
+
+model Teacher {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email  String @unique
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
