@@ -142,3 +142,72 @@ export function setQuizQuestions(id: string, questions: QuestionDraft[]) {
 export function publishQuiz(id: string) {
   return request<{ quiz: QuizListItem }>(`/teacher/quizzes/${id}/publish`, { method: 'POST' });
 }
+
+export type QuizWindowStatus = 'UPCOMING' | 'OPEN' | 'CLOSED';
+
+export interface StudentAttemptSummary {
+  id: string;
+  startedAt: string;
+  deadline: string;
+  submittedAt: string | null;
+  submissionType: string | null;
+  score: number | null;
+}
+
+export interface StudentQuizListItem {
+  id: string;
+  title: string;
+  timeLimitMinutes: number;
+  openAt: string;
+  closeAt: string;
+  negativeMarking: boolean;
+  windowStatus: QuizWindowStatus;
+  attempt: StudentAttemptSummary | null;
+}
+
+export function listStudentQuizzes() {
+  return request<{ quizzes: StudentQuizListItem[] }>('/student/quizzes');
+}
+
+export interface StudentOption {
+  id: string;
+  order: number;
+  text: string;
+}
+
+export interface StudentQuestion {
+  id: string;
+  order: number;
+  text: string;
+  points: number;
+  options: StudentOption[];
+}
+
+export interface AttemptDetail {
+  id: string;
+  quizId: string;
+  title: string;
+  timeLimitMinutes: number;
+  negativeMarking: boolean;
+  penaltyFraction: number;
+  startedAt: string;
+  deadline: string;
+  submittedAt: string | null;
+  submissionType: string | null;
+  score: number | null;
+  questions: StudentQuestion[];
+  answers: Record<string, string>;
+}
+
+/** Starts the quiz if the student has no attempt yet, otherwise returns their existing one —
+ * safe to call again on every page load, which is how "resume on refresh" works (FR-024). */
+export function startOrResumeAttempt(quizId: string) {
+  return request<AttemptDetail>(`/student/quizzes/${quizId}/attempt`, { method: 'POST' });
+}
+
+export function saveAnswer(attemptId: string, questionId: string, optionId: string) {
+  return request<{ questionId: string; optionId: string; answeredAt: string }>(
+    `/student/attempts/${attemptId}/answers`,
+    { method: 'PUT', body: JSON.stringify({ questionId, optionId }) },
+  );
+}

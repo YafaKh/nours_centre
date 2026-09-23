@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { StudentDashboard } from './pages/StudentDashboard';
+import { QuizTaking } from './pages/QuizTaking';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { QuizEditor } from './pages/QuizEditor';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -15,6 +16,14 @@ export function App() {
         element={
           <ProtectedRoute role="STUDENT">
             <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/quizzes/:id"
+        element={
+          <ProtectedRoute role="STUDENT">
+            <QuizTaking />
           </ProtectedRoute>
         }
       />

@@ -95,6 +95,29 @@ export function validQuestionsPayload(count = 15) {
   }));
 }
 
+/** Creates, fills with 15 questions, and publishes a quiz in one call — the shape every
+ * Phase 3+ student-facing test needs to get to a quiz a student can actually attempt. */
+export async function createPublishedQuiz(
+  app: Express,
+  teacherCookie: string[],
+  overrides: Partial<Record<string, unknown>> = {},
+): Promise<string> {
+  const createRes = await request(app)
+    .post('/api/teacher/quizzes')
+    .set('Cookie', teacherCookie)
+    .send(validQuizShellPayload(overrides));
+  const quizId: string = createRes.body.quiz.id;
+
+  await request(app)
+    .put(`/api/teacher/quizzes/${quizId}/questions`)
+    .set('Cookie', teacherCookie)
+    .send({ questions: validQuestionsPayload(15) });
+
+  await request(app).post(`/api/teacher/quizzes/${quizId}/publish`).set('Cookie', teacherCookie);
+
+  return quizId;
+}
+
 export async function cleanupQuizFixtures(usernamePrefixes: string[], classNamePrefix: string) {
   for (const prefix of usernamePrefixes) {
     await prisma.session.deleteMany({ where: { user: { username: { startsWith: prefix } } } });
