@@ -45,7 +45,7 @@ The system must work well on phones, because most students only have a phone.
 - T3. As a teacher, I choose whether this quiz uses negative marking, and how much.  
 - T4. As a teacher, I write quizzes in Arabic or English, and they display correctly.  
 - T5. As a teacher, I see results for my quizzes: who took it, scores, who did not take it.  
-- T6. As a teacher, I can import a quiz from a spreadsheet instead of typing it.
+- T6. As a teacher, I can import a quiz's questions from a spreadsheet instead of typing them.
 
 ### Admin (Nour)
 
@@ -72,7 +72,7 @@ The system must work well on phones, because most students only have a phone.
 - FR-011. A question has: text, exactly four options, exactly one correct option, and points (a positive number).  
 - FR-012. **\[DECISION\]** All dates and times are in Amman time (Asia/Amman).  
 - FR-013. A quiz can be saved as a draft. Students only see published quizzes.  
-- FR-014. **\[DECISION\]** Once any student has started a quiz, its questions, options, correct answers and points are locked. The teacher can still change the close date. This stops scores from changing after students have taken it.  
+- FR-014. **\[DECISION\]** Once any student has started a quiz, its questions, options, correct answers, points, and close date are all locked — no field of a started quiz can be edited. This stops scores from changing and stops a running student's deadline from shifting after students have taken it.  
 - FR-015. **\[DECISION\]** One quiz can target more than one class.
 
 ### 4.3 Taking a quiz
@@ -112,8 +112,10 @@ The system must work well on phones, because most students only have a phone.
 - FR-050. The admin can import students, teachers and quizzes from CSV or XLSX files.  
 - FR-051. Each import type has a documented column layout, and a sample file is provided in the repo.  
 - FR-052. Import validates every row and shows clear errors with row numbers (for example "Row 14: class 12C does not exist"). Nothing is saved if any row fails.  
+- FR-052a. **\[DECISION\]** Each import screen (students, teachers, quiz questions) has a "Download template" button that gives a CSV pre-filled with the exact expected header row and one or two example rows, so the user never has to guess the column layout or find it in the repo.  
 - FR-053. Importing the same student list twice does not create duplicates. Existing students are updated by student ID.  
-- FR-054. **\[DECISION\]** Imported students get an initial password that the admin can see and hand out. Forcing a password change on first login is listed as a next step.
+- FR-054. **\[DECISION\]** Imported students get an initial password that the admin can see and hand out. Forcing a password change on first login is listed as a next step.  
+- FR-055. **\[DECISION\]** Quiz import carries questions only, not quiz-level settings. The teacher first creates the quiz shell in the website form (title, target class(es), time limit, open/close dates, negative marking), then imports the question list into it. Column layout: `question_no, question_text, option_a, option_b, option_c, option_d, correct, points`, where `correct` is one of `A`/`B`/`C`/`D`.
 
 ### 4.7 Arabic and language
 
@@ -140,7 +142,7 @@ The system must work well on phones, because most students only have a phone.
 
 - **User**: name\_ar, name\_en (at least one required), username, password hash, role (student / teacher / admin).  
 - **Class**: name (10A, 10B, 11A).  
-- **Student**: user \+ class \+ student ID.  
+- **Student**: user \+ class \+ student ID \+ email (optional in v1, captured now so passwords can be emailed later).  
 - **Teacher**: user \+ email.  
 - **Quiz**: owner teacher, title, target classes, time limit, open time, close time, negative marking on/off, penalty fraction, status (draft / published).  
 - **Question**: quiz, order, text, points.  
@@ -197,12 +199,14 @@ Listed in DECISIONS.md with reasons:
 - Parent accounts  
 - Anti-cheating beyond server-side timing (for example tab switching detection)  
 - Student exam review (viewing correct answers or reviewing submitted questions)  
-- Editing a quiz after students have started it
+- Editing a quiz after students have started it (including the close date — no exceptions)
 
 ## 10\. Next steps (if another week)
 
 - Shuffle question and option order per student  
 - Force password change on first login  
+- Allow a teacher to extend a quiz's close date after students have started attempts, with clear rules for how it affects already-running deadlines  
+- Email students their initial password (and future resets) automatically, instead of the admin handing it out — student email is already captured in v1 to make this a drop-in addition later  
 - Create notification system for students with new quizzes (probably by email)  
 - Arabic interface translation  
 - Allow teacher to extend time for one student (special needs, connection problems)  
@@ -213,7 +217,7 @@ Listed in DECISIONS.md with reasons:
 ## 11\. Delivery constraints (from the assessment)
 
 - Public GitHub repo with full source code, meaningful commit history.  
-- Runs with one command on a clean machine (Docker Compose, or SQLite with exact steps).  
+- Runs with one command on a clean machine, against SQLite — exact steps and the required Node version are in the README (tech choice detailed in PLAN.md).  
 - README.md: how to run, how to load sample data, login details for each role.  
 - DECISIONS.md: assumptions, extras built and why, what was left out, next steps.  
 - AI\_USAGE.md: tools used, how they were directed, how output was checked. CLAUDE.md committed.  
