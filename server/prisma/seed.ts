@@ -1,92 +1,16 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import { prisma } from '../src/db.js';
+import { seedDatabase } from './seedData.js';
 
-const prisma = new PrismaClient();
-
-const SEED_PASSWORD = 'password123';
-
-async function main() {
-  const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
-
-  const klass = await prisma.class.upsert({
-    where: { name: '10A' },
-    update: {},
-    create: { name: '10A' },
-  });
-  await prisma.class.upsert({
-    where: { name: '10B' },
-    update: {},
-    create: { name: '10B' },
-  });
-
-  const student = await prisma.user.upsert({
-    where: { username: '1001' },
-    update: {},
-    create: {
-      username: '1001',
-      passwordHash,
-      role: 'STUDENT',
-      nameAr: 'سارة أحمد',
-      nameEn: 'Sara Ahmad',
-      student: {
-        create: {
-          studentId: '1001',
-          classId: klass.id,
-        },
-      },
-    },
-  });
-
-  const teacher = await prisma.user.upsert({
-    where: { username: 'teacher@nourscentre.test' },
-    update: {},
-    create: {
-      username: 'teacher@nourscentre.test',
-      passwordHash,
-      role: 'TEACHER',
-      nameAr: 'محمد خالد',
-      nameEn: 'Mohammad Khaled',
-      teacher: {
-        create: { email: 'teacher@nourscentre.test' },
-      },
-    },
-  });
-
-  const teacher2 = await prisma.user.upsert({
-    where: { username: 'teacher2@nourscentre.test' },
-    update: {},
-    create: {
-      username: 'teacher2@nourscentre.test',
-      passwordHash,
-      role: 'TEACHER',
-      nameAr: 'ليلى عمر',
-      nameEn: 'Layla Omar',
-      teacher: {
-        create: { email: 'teacher2@nourscentre.test' },
-      },
-    },
-  });
-
-  const admin = await prisma.user.upsert({
-    where: { username: 'nour@nourscentre.test' },
-    update: {},
-    create: {
-      username: 'nour@nourscentre.test',
-      passwordHash,
-      role: 'ADMIN',
-      nameAr: 'نور',
-      nameEn: 'Nour',
-    },
-  });
-
-  console.log('Seeded sample users (password for all: "password123"):');
-  console.log(`  student:  ${student.username}`);
-  console.log(`  teacher:  ${teacher.username}`);
-  console.log(`  teacher2: ${teacher2.username}`);
-  console.log(`  admin:    ${admin.username}`);
-}
-
-main()
+seedDatabase()
+  .then((summary) => {
+    console.log('Seeded sample data:');
+    console.log(`  ${summary.studentsImported} students, ${summary.teachersImported} teachers imported`);
+    console.log('Sample logins (password is the same for all three):');
+    console.log(`  admin:   ${summary.admin.username}  /  ${summary.admin.password}`);
+    console.log(`  teacher: ${summary.documentedTeacher.username}  /  ${summary.documentedTeacher.password}`);
+    console.log(`  student: ${summary.documentedStudent.username}  /  ${summary.documentedStudent.password}`);
+    console.log('See server/sample-data/students.csv and teachers.csv for every other seeded login (all use a generated password shown only during import — reset via the admin UI to issue a new one).');
+  })
   .catch((err) => {
     console.error(err);
     process.exit(1);
