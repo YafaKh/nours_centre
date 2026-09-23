@@ -22,6 +22,13 @@ export function AdminDashboard() {
           <p className="mt-1 text-sm text-gray-500">Browse every student and reset a password.</p>
         </Link>
         <Link
+          to="/admin/teachers"
+          className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-400 hover:shadow-sm"
+        >
+          <span className="font-medium text-gray-900">Teachers</span>
+          <p className="mt-1 text-sm text-gray-500">Browse every teacher.</p>
+        </Link>
+        <Link
           to="/admin/import"
           className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-400 hover:shadow-sm"
         >

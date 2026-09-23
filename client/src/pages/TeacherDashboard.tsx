@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { listQuizzes } from '../api/client';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
+import { displayName } from '../lib/name';
 
 export function TeacherDashboard() {
   const { user } = useAuth();
@@ -52,7 +53,7 @@ export function TeacherDashboard() {
                   {isAdmin && (
                     <>
                       {' '}
-                      · <span dir="auto">{quiz.owner.nameEn || quiz.owner.nameAr || quiz.owner.username}</span>
+                      · <span dir="auto">{displayName(quiz.owner.nameEn, quiz.owner.nameAr, quiz.owner.username)}</span>
                     </>
                   )}
                 </p>

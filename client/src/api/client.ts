@@ -339,3 +339,15 @@ export function resetStudentPassword(studentRowId: string) {
     { method: 'POST' },
   );
 }
+
+export interface AdminTeacherRow {
+  id: string;
+  nameAr: string | null;
+  nameEn: string | null;
+  email: string;
+  username: string;
+}
+
+export function listAdminTeachers() {
+  return request<{ teachers: AdminTeacherRow[] }>('/admin/teachers');
+}

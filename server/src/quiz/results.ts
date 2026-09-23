@@ -7,6 +7,7 @@ import type { Attempt, Answer } from '@prisma/client';
 import { prisma } from '../db.js';
 import { finalizeIfExpired } from './finalize.js';
 import { toCsv } from './csv.js';
+import { displayName } from '../lib/displayName.js';
 
 export type AttemptStatus = 'NOT_ATTEMPTED' | 'IN_PROGRESS' | 'SUBMITTED' | 'AUTO_SUBMITTED';
 
@@ -77,19 +78,25 @@ export async function getQuizResults(quizId: string): Promise<QuizResults> {
   const answersByAttemptId = new Map<string, Answer[]>(attempts.map((a) => [a.id, a.answers]));
   const attemptByStudentId = new Map(finalized.map((a, i) => [attempts[i].studentId, a]));
 
-  const roster: RosterRow[] = students.map((s) => {
-    const attempt = attemptByStudentId.get(s.id) ?? null;
-    return {
-      studentId: s.studentId,
-      nameAr: s.user.nameAr,
-      nameEn: s.user.nameEn,
-      className: s.className,
-      status: statusFor(attempt),
-      score: attempt?.score ?? null,
-      startedAt: attempt?.startedAt ?? null,
-      submittedAt: attempt?.submittedAt ?? null,
-    };
-  });
+  // FR-068: sorting uses the displayed name (name_en, else name_ar), same rule as the admin
+  // student list.
+  const roster: RosterRow[] = students
+    .map((s) => {
+      const attempt = attemptByStudentId.get(s.id) ?? null;
+      return {
+        studentId: s.studentId,
+        nameAr: s.user.nameAr,
+        nameEn: s.user.nameEn,
+        className: s.className,
+        status: statusFor(attempt),
+        score: attempt?.score ?? null,
+        startedAt: attempt?.startedAt ?? null,
+        submittedAt: attempt?.submittedAt ?? null,
+      };
+    })
+    .sort((a, b) =>
+      displayName(a.nameEn, a.nameAr, a.studentId).localeCompare(displayName(b.nameEn, b.nameAr, b.studentId)),
+    );
 
   const attempted = roster.filter((r) => r.status !== 'NOT_ATTEMPTED').length;
   const scoredAttempts = finalized.filter((a) => a.submittedAt !== null);

@@ -12,6 +12,9 @@ const loginLimiter = rateLimit({
   limit: Number(process.env.LOGIN_RATE_LIMIT ?? 5),
   standardHeaders: true,
   legacyHeaders: false,
+  // Rate-limit after N *failures* (PLAN.md Phase 1), not N attempts overall — a correct login
+  // shouldn't spend down the same budget that's protecting against brute-forcing the password.
+  skipSuccessfulRequests: true,
   message: { error: 'Too many login attempts. Please try again later.' },
 });
 

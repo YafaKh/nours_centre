@@ -8,6 +8,7 @@ import { QuizResults } from './pages/QuizResults';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminImport } from './pages/AdminImport';
 import { AdminStudents } from './pages/AdminStudents';
+import { AdminTeachers } from './pages/AdminTeachers';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 export function App() {
@@ -67,6 +68,14 @@ export function App() {
         element={
           <ProtectedRoute role="ADMIN">
             <AdminStudents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/teachers"
+        element={
+          <ProtectedRoute role="ADMIN">
+            <AdminTeachers />
           </ProtectedRoute>
         }
       />

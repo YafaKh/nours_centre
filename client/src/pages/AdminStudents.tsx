@@ -35,9 +35,17 @@ export function AdminStudents() {
   return (
     <DashboardLayout title="Students">
       <div className="mx-auto max-w-3xl space-y-4">
-        <Link to="/admin" className="text-sm text-blue-600 hover:underline">
-          &larr; Back to admin overview
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/admin" className="text-sm text-blue-600 hover:underline">
+            &larr; Back to admin overview
+          </Link>
+          <Link
+            to="/admin/import"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          >
+            Import students/teachers
+          </Link>
+        </div>
 
         {revealed && (
           <div className="rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-800">

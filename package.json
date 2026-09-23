@@ -13,9 +13,11 @@
     "setup": "npm run --workspace server prisma:migrate && npm run --workspace server seed",
     "dev": "concurrently -k -n server,client -c blue,green \"npm run --workspace server dev\" \"npm run --workspace client dev\"",
     "build": "npm run --workspace server build && npm run --workspace client build",
-    "test": "npm run --workspace server test"
+    "test": "npm run --workspace server test",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^9.0.1"
   }
 }

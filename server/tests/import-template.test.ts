@@ -6,6 +6,7 @@ import { STUDENT_COLUMNS } from '../src/import/students.js';
 import { TEACHER_COLUMNS } from '../src/import/teachers.js';
 import { QUIZ_QUESTION_COLUMNS } from '../src/import/quizQuestions.js';
 import { createAdmin, createClass, createTeacher, loginAndGetCookie, validQuizShellPayload } from './helpers/quizFixtures.js';
+import { bufferParser, xlsxRows } from './helpers/importFixtures.js';
 
 const app = createApp();
 const PREFIX = 'import-template-';
@@ -50,46 +51,57 @@ describe('import templates (FR-052a): header matches the validator\'s columns, e
   }
 
   it('students template header matches STUDENT_COLUMNS, and its example rows import successfully', async () => {
-    const res = await request(app).get('/api/admin/import/students/template').set('Cookie', adminCookie);
+    const res = await request(app)
+      .get('/api/admin/import/students/template')
+      .set('Cookie', adminCookie)
+      .buffer(true)
+      .parse(bufferParser);
     expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toContain('text/csv');
+    expect(res.headers['content-type']).toContain('spreadsheetml');
 
-    const text: string = res.text.replace(/^﻿/, '');
-    const lines = text.trim().split('\r\n');
-    expect(lines[0].split(',')).toEqual(STUDENT_COLUMNS.map((c) => c.header));
-    expect(lines.length).toBe(1 + STUDENT_COLUMNS[0].example.length);
+    const rows = xlsxRows(res.body);
+    expect(rows[0]).toEqual(STUDENT_COLUMNS.map((c) => c.header));
+    expect(rows.length).toBe(1 + STUDENT_COLUMNS[0].example.length);
 
     const importRes = await request(app)
       .post('/api/admin/import/students')
       .set('Cookie', adminCookie)
-      .attach('file', Buffer.from(res.text, 'utf8'), 'students-template.csv');
+      .attach('file', res.body, 'students-template.xlsx');
     expect(importRes.status).toBe(200);
     expect(importRes.body.created).toBe(2);
   });
 
   it('teachers template header matches TEACHER_COLUMNS, and its example rows import successfully', async () => {
-    const res = await request(app).get('/api/admin/import/teachers/template').set('Cookie', adminCookie);
+    const res = await request(app)
+      .get('/api/admin/import/teachers/template')
+      .set('Cookie', adminCookie)
+      .buffer(true)
+      .parse(bufferParser);
     expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('spreadsheetml');
 
-    const text: string = res.text.replace(/^﻿/, '');
-    const lines = text.trim().split('\r\n');
-    expect(lines[0].split(',')).toEqual(TEACHER_COLUMNS.map((c) => c.header));
+    const rows = xlsxRows(res.body);
+    expect(rows[0]).toEqual(TEACHER_COLUMNS.map((c) => c.header));
 
     const importRes = await request(app)
       .post('/api/admin/import/teachers')
       .set('Cookie', adminCookie)
-      .attach('file', Buffer.from(res.text, 'utf8'), 'teachers-template.csv');
+      .attach('file', res.body, 'teachers-template.xlsx');
     expect(importRes.status).toBe(200);
     expect(importRes.body.created).toBe(2);
   });
 
   it('quiz-questions template header matches QUIZ_QUESTION_COLUMNS, and its example rows import successfully', async () => {
-    const res = await request(app).get('/api/teacher/import/quiz-questions/template').set('Cookie', teacherCookie);
+    const res = await request(app)
+      .get('/api/teacher/import/quiz-questions/template')
+      .set('Cookie', teacherCookie)
+      .buffer(true)
+      .parse(bufferParser);
     expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('spreadsheetml');
 
-    const text: string = res.text.replace(/^﻿/, '');
-    const lines = text.trim().split('\r\n');
-    expect(lines[0].split(',')).toEqual(QUIZ_QUESTION_COLUMNS.map((c) => c.header));
+    const rows = xlsxRows(res.body);
+    expect(rows[0]).toEqual(QUIZ_QUESTION_COLUMNS.map((c) => c.header));
 
     const classId = (await createClass(`${PREFIX}class`)).id;
     const createRes = await request(app)
@@ -101,7 +113,7 @@ describe('import templates (FR-052a): header matches the validator\'s columns, e
     const importRes = await request(app)
       .post(`/api/teacher/quizzes/${quizId}/questions/import`)
       .set('Cookie', teacherCookie)
-      .attach('file', Buffer.from(res.text, 'utf8'), 'quiz-questions-template.csv');
+      .attach('file', res.body, 'quiz-questions-template.xlsx');
     expect(importRes.status).toBe(200);
     expect(importRes.body.questions).toHaveLength(QUIZ_QUESTION_COLUMNS[0].example.length);
   });

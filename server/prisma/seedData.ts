@@ -189,6 +189,26 @@ export async function seedDatabase(): Promise<SeedSummary> {
     classIds,
   );
 
+  // Open (not closed) fully-Arabic quiz, targeting the documented student's own class (10A), so
+  // Phase 7's RTL/mobile demo has a live quiz to take at 360px — the other Arabic quiz below is
+  // closed and only viewable via results. Question 6/7/14 mix Arabic and English within one
+  // question (FR-061/062), demonstrating that direction is detected per text block.
+  await ensureQuiz(
+    {
+      title: 'اختبار عام',
+      ownerEmail: 'teacher@nourscentre.test',
+      classNames: ['10A'],
+      timeLimitMinutes: 20,
+      openAt: new Date(now - 1 * day),
+      closeAt: new Date(now + 30 * day),
+      negativeMarking: false,
+      penaltyFraction: 0,
+      status: 'PUBLISHED',
+      questionsFile: 'quiz-arabic-open-questions.csv',
+    },
+    classIds,
+  );
+
   const arabicMathQuizId = await ensureQuiz(
     {
       title: 'الرياضيات - الوحدة الثانية',

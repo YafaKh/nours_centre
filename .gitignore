@@ -14,3 +14,8 @@ Thumbs.db
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Playwright
+/test-results/
+/playwright-report/
+/e2e/.auth/
