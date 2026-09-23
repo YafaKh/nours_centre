@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ApiError, saveAnswer, startOrResumeAttempt, type AttemptDetail } from '../api/client';
+import { ApiError, saveAnswer, startOrResumeAttempt, submitAttempt, type AttemptDetail } from '../api/client';
 import { DashboardLayout } from '../components/DashboardLayout';
 
 function formatRemaining(ms: number): string {
@@ -41,10 +41,24 @@ export function QuizTaking() {
   }, []);
 
   const [errorByQuestion, setErrorByQuestion] = useState<Record<string, string>>({});
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const answerMutation = useMutation({
     mutationFn: ({ attemptId, questionId, optionId }: { attemptId: string; questionId: string; optionId: string }) =>
       saveAnswer(attemptId, questionId, optionId),
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (attemptId: string) => submitAttempt(attemptId),
+    onSuccess: (result) => {
+      queryClient.setQueryData<AttemptDetail>(queryKey, result);
+      setShowConfirm(false);
+    },
+    onError: (err) => {
+      setSubmitError(err instanceof ApiError ? err.message : 'Could not submit this attempt');
+      setShowConfirm(false);
+    },
   });
 
   function selectOption(attemptId: string, questionId: string, optionId: string) {
@@ -70,6 +84,20 @@ export function QuizTaking() {
   const deadlineMs = attempt ? new Date(attempt.deadline).getTime() : null;
   const remainingMs = deadlineMs !== null ? deadlineMs - now : null;
   const timeUp = remainingMs !== null && remainingMs <= 0;
+  const submitted = Boolean(attempt?.submittedAt);
+
+  // FR-025: the server auto-submits lazily on the next read of this attempt. Poll every couple
+  // seconds once the countdown hits zero, rather than waiting for the normal 30s poll, so "time
+  // runs out" shows the auto-submitted result right away with no student action taken. This
+  // covers the grace period too — an immediate refetch at 0:00 would still land inside it.
+  useEffect(() => {
+    if (!timeUp || submitted) return;
+    const poll = setInterval(() => attemptQuery.refetch(), 2_000);
+    return () => clearInterval(poll);
+  }, [timeUp, submitted, attemptQuery]);
+
+  const unansweredCount = attempt ? attempt.questions.length - Object.keys(attempt.answers).length : 0;
+  const locked = timeUp || submitted;
 
   if (attemptQuery.isLoading) {
     return (
@@ -103,7 +131,7 @@ export function QuizTaking() {
 
         <div
           className={`sticky top-0 z-10 flex items-center justify-between rounded-md border p-3 text-sm font-semibold shadow-sm ${
-            timeUp ? 'border-red-300 bg-red-50 text-red-800' : 'border-blue-300 bg-blue-50 text-blue-800'
+            locked ? 'border-red-300 bg-red-50 text-red-800' : 'border-blue-300 bg-blue-50 text-blue-800'
           }`}
         >
           <span dir="auto" className="truncate">
@@ -112,10 +140,17 @@ export function QuizTaking() {
           <span className="shrink-0">{timeUp ? 'Time is up' : formatRemaining(remainingMs ?? 0)}</span>
         </div>
 
-        {timeUp && (
-          <p className="text-sm text-gray-600">
-            Time is up for this attempt. Your saved answers have been kept — auto-submission arrives in a later phase.
-          </p>
+        {submitted && (
+          <div className="rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-800">
+            {attempt.submissionType === 'AUTO'
+              ? 'Time ran out — this attempt was submitted automatically.'
+              : 'Submitted.'}{' '}
+            Your score: <span className="font-semibold">{attempt.score}</span>.
+          </div>
+        )}
+
+        {timeUp && !submitted && (
+          <p className="text-sm text-gray-600">Time is up for this attempt — waiting for it to finalize…</p>
         )}
 
         {attempt.questions.map((q, index) => (
@@ -134,13 +169,13 @@ export function QuizTaking() {
                     key={o.id}
                     className={`flex min-h-[44px] items-center gap-3 rounded-md border p-3 text-base ${
                       selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                    } ${timeUp ? 'opacity-70' : ''}`}
+                    } ${locked ? 'opacity-70' : ''}`}
                   >
                     <input
                       type="radio"
                       name={`question-${q.id}`}
                       checked={selected}
-                      disabled={timeUp}
+                      disabled={locked}
                       onChange={() => selectOption(attempt.id, q.id, o.id)}
                     />
                     <span dir="auto">{o.text}</span>
@@ -155,6 +190,58 @@ export function QuizTaking() {
             )}
           </div>
         ))}
+
+        {submitError && (
+          <p role="alert" className="text-sm text-red-600">
+            {submitError}
+          </p>
+        )}
+
+        {!locked && (
+          <div className="fixed inset-x-0 bottom-0 z-10 border-t border-gray-200 bg-white p-3">
+            <button
+              type="button"
+              onClick={() => setShowConfirm(true)}
+              className="mx-auto block w-full max-w-2xl rounded-md bg-blue-600 px-4 py-2.5 text-base font-medium text-white hover:bg-blue-700"
+            >
+              Submit
+            </button>
+          </div>
+        )}
+
+        {showConfirm && (
+          <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/40 sm:items-center">
+            <div className="w-full max-w-sm space-y-4 rounded-t-lg bg-white p-5 sm:rounded-lg">
+              <p className="text-base font-medium text-gray-900">Submit this quiz?</p>
+              {unansweredCount > 0 && (
+                <p className="text-sm text-amber-700">
+                  You have {unansweredCount} unanswered question{unansweredCount === 1 ? '' : 's'}. You can't change
+                  answers after submitting.
+                </p>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(false)}
+                  className="flex-1 rounded-md border border-gray-300 px-4 py-2.5 text-base font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={submitMutation.isPending}
+                  onClick={() => {
+                    setSubmitError(null);
+                    submitMutation.mutate(attempt.id);
+                  }}
+                  className="flex-1 rounded-md bg-blue-600 px-4 py-2.5 text-base font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

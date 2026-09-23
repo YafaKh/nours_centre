@@ -118,6 +118,12 @@ export async function createPublishedQuiz(
   return quizId;
 }
 
+/** Backdates an attempt's deadline directly in the DB — the fast, deterministic way to get an
+ * "expired" attempt in tests without waiting out a real time limit. */
+export async function setAttemptDeadline(attemptId: string, deadline: Date) {
+  await prisma.attempt.update({ where: { id: attemptId }, data: { deadline } });
+}
+
 export async function cleanupQuizFixtures(usernamePrefixes: string[], classNamePrefix: string) {
   for (const prefix of usernamePrefixes) {
     await prisma.session.deleteMany({ where: { user: { username: { startsWith: prefix } } } });

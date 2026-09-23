@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../auth/middleware.js';
 import { prisma } from '../db.js';
+import { finalizeIfExpired } from '../quiz/finalize.js';
 import { isQuizLocked } from '../quiz/lock.js';
 import { validateQuestions, validateQuizShell } from '../quiz/validation.js';
 
@@ -197,6 +198,40 @@ router.put('/quizzes/:id/questions', async (req, res) => {
   });
 
   res.json({ questions: full.questions });
+});
+
+// A minimal per-quiz attempt list — just enough for Phase 4's demo (an auto-submitted attempt
+// with a score, visible on reload). The full results roster (every target-class student
+// including not-attempted, summary stats, per-question %, CSV export) is Phase 5.
+router.get('/quizzes/:id/attempts', async (req, res) => {
+  const quiz = await loadOwnedQuiz(req.params.id, req.user!);
+  if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
+
+  const attempts = await prisma.attempt.findMany({
+    where: { quizId: quiz.id },
+    include: { student: { include: { user: true } } },
+    orderBy: { startedAt: 'asc' },
+  });
+
+  // Lazy finalize-on-read (FR-025): reloading this page catches an expired attempt
+  // immediately, without waiting for the sweep.
+  const finalized = await Promise.all(attempts.map((a) => finalizeIfExpired(a)));
+
+  res.json({
+    attempts: finalized.map((attempt, i) => ({
+      id: attempt.id,
+      student: {
+        studentId: attempts[i].student.studentId,
+        nameAr: attempts[i].student.user.nameAr,
+        nameEn: attempts[i].student.user.nameEn,
+      },
+      startedAt: attempt.startedAt,
+      deadline: attempt.deadline,
+      submittedAt: attempt.submittedAt,
+      submissionType: attempt.submissionType,
+      score: attempt.score,
+    })),
+  });
 });
 
 router.post('/quizzes/:id/publish', async (req, res) => {

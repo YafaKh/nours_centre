@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { requireAuth, requireRole } from '../auth/middleware.js';
 import { prisma } from '../db.js';
-import { computeDeadline, isPastDeadline } from '../quiz/deadline.js';
+import { computeDeadline } from '../quiz/deadline.js';
+import { finalizeIfExpired, finalizeManually } from '../quiz/finalize.js';
 
 const router = Router();
 router.use(requireAuth, requireRole('STUDENT'));
@@ -80,9 +81,15 @@ router.get('/quizzes', async (req, res) => {
     orderBy: { openAt: 'asc' },
   });
 
+  // Lazy finalize-on-read (FR-025) so the dashboard reflects an expired attempt immediately,
+  // without waiting for the sweep or a visit to the quiz-taking page.
+  const finalizedAttempts = await Promise.all(
+    quizzes.map((quiz) => (quiz.attempts[0] ? finalizeIfExpired(quiz.attempts[0]) : null)),
+  );
+
   res.json({
-    quizzes: quizzes.map((quiz) => {
-      const attempt = quiz.attempts[0];
+    quizzes: quizzes.map((quiz, i) => {
+      const attempt = finalizedAttempts[i];
       return {
         id: quiz.id,
         title: quiz.title,
@@ -140,6 +147,10 @@ router.post('/quizzes/:quizId/attempt', async (req, res) => {
     }
   }
 
+  // Lazy finalize-on-read (FR-025): this endpoint is also how the page resumes/polls, so an
+  // expired attempt is caught here the instant it's read, not just by the sweep.
+  attempt = await finalizeIfExpired(attempt);
+
   const [questions, answers] = await Promise.all([
     prisma.question.findMany({
       where: { quizId: quiz.id },
@@ -158,17 +169,19 @@ router.put('/attempts/:attemptId/answers', async (req, res) => {
   const student = await loadStudent(req.user!.id);
   if (!student) return res.status(404).json({ error: 'Student profile not found' });
 
-  const attempt = await prisma.attempt.findUnique({ where: { id: req.params.attemptId } });
+  let attempt = await prisma.attempt.findUnique({ where: { id: req.params.attemptId } });
   if (!attempt || attempt.studentId !== student.id) {
     return res.status(404).json({ error: 'Attempt not found' });
   }
 
+  // Lazy finalize-on-write (FR-025): a write against an expired attempt finalizes it here,
+  // rather than merely rejecting the write and leaving it stale until the sweep runs.
+  // Ignores any client-supplied timestamp in req.body entirely (SC-003) — only the server's
+  // own clock, via isPastDeadline inside finalizeIfExpired, decides lateness.
+  attempt = await finalizeIfExpired(attempt);
+
   if (attempt.submittedAt) {
     return res.status(409).json({ error: 'This attempt has already been submitted' });
-  }
-
-  if (isPastDeadline(attempt.deadline)) {
-    return res.status(409).json({ error: 'The deadline for this attempt has passed' });
   }
 
   const questionId = typeof req.body?.questionId === 'string' ? req.body.questionId : '';
@@ -197,6 +210,40 @@ router.put('/attempts/:attemptId/answers', async (req, res) => {
   });
 
   res.json({ questionId: answer.questionId, optionId: answer.optionId, answeredAt: answer.answeredAt });
+});
+
+// FR-025/FR-073: manual submit. Ignores any client-supplied timestamp in req.body entirely
+// (SC-003) — only the server's own clock decides whether this lands as MANUAL (on time) or is
+// instead caught by finalizeIfExpired as AUTO (already past deadline by the time it arrives).
+router.post('/attempts/:attemptId/submit', async (req, res) => {
+  const student = await loadStudent(req.user!.id);
+  if (!student) return res.status(404).json({ error: 'Student profile not found' });
+
+  let attempt = await prisma.attempt.findUnique({ where: { id: req.params.attemptId } });
+  if (!attempt || attempt.studentId !== student.id) {
+    return res.status(404).json({ error: 'Attempt not found' });
+  }
+
+  if (attempt.submittedAt) {
+    return res.status(409).json({ error: 'This attempt has already been submitted' });
+  }
+
+  attempt = await finalizeIfExpired(attempt);
+  if (!attempt.submittedAt) {
+    attempt = await finalizeManually(attempt, new Date());
+  }
+
+  const quiz = await prisma.quiz.findUniqueOrThrow({ where: { id: attempt.quizId } });
+  const [questions, answers] = await Promise.all([
+    prisma.question.findMany({
+      where: { quizId: quiz.id },
+      orderBy: { order: 'asc' },
+      include: { options: { orderBy: { order: 'asc' } } },
+    }),
+    prisma.answer.findMany({ where: { attemptId: attempt.id } }),
+  ]);
+
+  res.json(attemptPayload(attempt, quiz, questions, answers));
 });
 
 export default router;
