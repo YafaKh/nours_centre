@@ -6,6 +6,7 @@ import {
   createQuiz,
   getQuiz,
   listClasses,
+  listQuizAttempts,
   publishQuiz,
   setQuizQuestions,
   updateQuiz,
@@ -45,6 +46,11 @@ function emptyOption() {
 
 function emptyQuestion(): QuestionDraft {
   return { text: '', points: 1, options: [emptyOption(), emptyOption(), emptyOption(), emptyOption()] };
+}
+
+function attemptStatusLabel(submittedAt: string | null, submissionType: string | null): string {
+  if (!submittedAt) return 'In progress';
+  return submissionType === 'AUTO' ? 'Auto-submitted' : 'Submitted';
 }
 
 function describeError(err: unknown): string {
@@ -99,6 +105,14 @@ export function QuizEditor() {
   }, [quizQuery.data]);
 
   const locked = quizQuery.data?.locked ?? false;
+
+  // Locked implies at least one Attempt exists (src/quiz/lock.ts) — that's the only case
+  // where this list is ever non-empty.
+  const attemptsQuery = useQuery({
+    queryKey: ['quiz-attempts', id],
+    queryFn: () => listQuizAttempts(id!),
+    enabled: !isNew && locked,
+  });
 
   const createMutation = useMutation({
     mutationFn: (input: QuizShellInput) => createQuiz(input),
@@ -229,6 +243,37 @@ export function QuizEditor() {
           <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
             This quiz is locked: a student has already started it. Nothing on this quiz — questions, options,
             points, correct answers, or the close date — can be edited anymore.
+          </div>
+        )}
+
+        {locked && (
+          <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+            <h2 className="text-base font-semibold text-gray-900">Results</h2>
+            {attemptsQuery.isLoading && <p className="text-sm text-gray-500">Loading…</p>}
+            {attemptsQuery.data && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-start text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-gray-500">
+                      <th className="py-1.5 pe-3 text-start font-medium">Student</th>
+                      <th className="py-1.5 pe-3 text-start font-medium">Status</th>
+                      <th className="py-1.5 text-start font-medium">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attemptsQuery.data.attempts.map((a) => (
+                      <tr key={a.id} className="border-b border-gray-100">
+                        <td className="py-1.5 pe-3">
+                          <span dir="auto">{a.student.nameEn || a.student.nameAr || a.student.studentId}</span>
+                        </td>
+                        <td className="py-1.5 pe-3 text-gray-700">{attemptStatusLabel(a.submittedAt, a.submissionType)}</td>
+                        <td className="py-1.5 text-gray-700">{a.score ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

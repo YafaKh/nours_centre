@@ -211,3 +211,21 @@ export function saveAnswer(attemptId: string, questionId: string, optionId: stri
     { method: 'PUT', body: JSON.stringify({ questionId, optionId }) },
   );
 }
+
+export function submitAttempt(attemptId: string) {
+  return request<AttemptDetail>(`/student/attempts/${attemptId}/submit`, { method: 'POST' });
+}
+
+export interface TeacherAttemptSummary {
+  id: string;
+  student: { studentId: string; nameAr: string | null; nameEn: string | null };
+  startedAt: string;
+  deadline: string;
+  submittedAt: string | null;
+  submissionType: string | null;
+  score: number | null;
+}
+
+export function listQuizAttempts(quizId: string) {
+  return request<{ attempts: TeacherAttemptSummary[] }>(`/teacher/quizzes/${quizId}/attempts`);
+}
