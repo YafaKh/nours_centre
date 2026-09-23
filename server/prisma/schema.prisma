@@ -97,6 +97,7 @@ model Question {
   points Float
 
   options Option[]
+  answers Answer[]
 
   @@unique([quizId, order])
 }
@@ -109,12 +110,13 @@ model Option {
   text       String
   isCorrect  Boolean  @default(false)
 
+  answers Answer[]
+
   @@unique([questionId, order])
 }
 
-// Full attempt-taking flow (Answer table, start-attempt endpoint, etc.) arrives in Phase 3.
-// The table exists from this migration on so the single-attempt unique constraint and the
-// Phase 2 lock rule (FR-014) never need a later, riskier migration — see PLAN.md decision #5.
+// The table exists from Phase 2's migration on so the single-attempt unique constraint and
+// the lock rule (FR-014) never need a later, riskier migration — see PLAN.md decision #5.
 model Attempt {
   id             String    @id @default(cuid())
   studentId      String
@@ -127,5 +129,23 @@ model Attempt {
   submissionType String?
   score          Float?
 
+  answers Answer[]
+
   @@unique([studentId, quizId])
+}
+
+// One row per question the student has picked an option for. Upserted on every autosave
+// click (FR-023); unique per attempt+question so re-picking an answer replaces it rather
+// than creating a second row.
+model Answer {
+  id         String   @id @default(cuid())
+  attemptId  String
+  attempt    Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  optionId   String
+  option     Option   @relation(fields: [optionId], references: [id])
+  answeredAt DateTime @updatedAt
+
+  @@unique([attemptId, questionId])
 }
