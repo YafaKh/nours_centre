@@ -98,7 +98,7 @@ The system must work well on phones, because most students only have a phone.
 - FR-035. **\[DECISION\]** The total score cannot go below 0\.  
 - FR-036. The score is calculated on the server at submission and stored with the attempt.  
 - FR-037. The student sees: score, maximum score, and number correct / wrong / unanswered.  
-- **\[DECISION\]** Student exam review (viewing correct answers/questions after submission) is out of scope for v1.
+- **\[DECISION\]** Student exam review (viewing correct answers/questions after submission) is out of scope for v1. This also means a student cannot reopen a quiz to see its question/option text again once their attempt is submitted (manually or automatically) or the quiz's close time has passed — the quiz-taking API drops question/answer content entirely once an attempt is submitted, returning only its score and status. The quiz list still shows the student their own score per quiz (FR-037).
 
 ### 4.5 Results
 
@@ -203,6 +203,7 @@ Listed in DECISIONS.md with reasons:
 
 ## 10\. Next steps (if another week)
 
+- Enhance the overall UI/UX
 - Shuffle question and option order per student  
 - Force password change on first login  
 - Allow a teacher to extend a quiz's close date after students have started attempts, with clear rules for how it affects already-running deadlines  

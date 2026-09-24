@@ -2,7 +2,7 @@
 // are loaded through the real import pipeline from CSV files under server/sample-data, in the
 // exact format an admin would upload — so loading the sample also exercises the importer, per
 // SPEC section 6's last bullet. Quiz shells are created directly (import carries only questions,
-// per FR-055/decision #8), then each quiz's questions are loaded the same way, through
+// per FR-055/DECISIONS.md §2 #8), then each quiz's questions are loaded the same way, through
 // parseQuizQuestionsFile + replaceQuizQuestions.
 
 import { readFileSync } from 'node:fs';

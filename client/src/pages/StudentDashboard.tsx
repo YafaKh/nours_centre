@@ -3,16 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { listStudentQuizzes, type StudentQuizListItem } from '../api/client';
 import { DashboardLayout } from '../components/DashboardLayout';
 
-function statusLabel(status: StudentQuizListItem['windowStatus']): string {
-  if (status === 'OPEN') return 'Open now';
-  if (status === 'UPCOMING') return 'Upcoming';
-  return 'Closed';
-}
-
-function statusClass(status: StudentQuizListItem['windowStatus']): string {
-  if (status === 'OPEN') return 'bg-green-100 text-green-800';
-  if (status === 'UPCOMING') return 'bg-amber-100 text-amber-800';
-  return 'bg-gray-200 text-gray-700';
+// Green while the close date hasn't passed yet (open or upcoming), red once it has.
+function closeDateClass(status: StudentQuizListItem['windowStatus']): string {
+  return status === 'CLOSED' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
 }
 
 export function StudentDashboard() {
@@ -30,8 +23,11 @@ export function StudentDashboard() {
 
         <ul className="space-y-2">
           {quizzes.map((quiz) => {
-            const canTake = quiz.windowStatus === 'OPEN';
-            const inProgress = quiz.attempt && !quiz.attempt.submittedAt;
+            const submitted = Boolean(quiz.attempt?.submittedAt);
+            // A student can only ever open a quiz that's currently open and that they haven't
+            // already submitted — once submitted, or once the quiz closes, it can't be reopened.
+            const canTake = quiz.windowStatus === 'OPEN' && !submitted;
+            const inProgress = quiz.attempt && !submitted;
 
             const card = (
               <>
@@ -39,13 +35,13 @@ export function StudentDashboard() {
                   <span dir="auto" className="font-medium text-gray-900">
                     {quiz.title}
                   </span>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(quiz.windowStatus)}`}>
-                    {statusLabel(quiz.windowStatus)}
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${closeDateClass(quiz.windowStatus)}`}>
+                    Closes {new Date(quiz.closeAt).toLocaleString()}
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
                   {quiz.timeLimitMinutes} min
-                  {quiz.attempt?.submittedAt && ' · Submitted'}
+                  {submitted && ` · Submitted · Score: ${quiz.attempt!.score ?? 0} / ${quiz.maxScore}`}
                   {inProgress && ' · In progress'}
                 </p>
               </>

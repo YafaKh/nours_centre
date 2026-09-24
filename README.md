@@ -6,9 +6,9 @@ Full requirements and reasoning live in [SPEC.md](SPEC.md); the tech stack and p
 
 ## Status
 
-This build is in progress, following the phases in [PLAN.md](PLAN.md). Currently implemented: **Phase 1 — auth + roles skeleton** (login, sessions, role-based access, empty per-role dashboards). Quiz authoring, quiz-taking, scoring, results, and spreadsheet import are not built yet.
+All 8 phases in [PLAN.md](PLAN.md) are complete: auth + roles, quiz authoring, student quiz-taking, auto-submit/deadline enforcement, scoring + results + CSV export, spreadsheet import, Arabic/RTL + mobile polish, and a final hardening pass (full test suite, access-control matrix, clean-checkout smoke test, and this documentation).
 
-`DECISIONS.md` and `AI_USAGE.md` (required deliverables per the assessment brief) will be added as the build progresses — see the note at the bottom of this file.
+See [DECISIONS.md](DECISIONS.md) for every assumption made on the brief's gaps, what was built beyond the brief, what was left out, and what's next. See [AI_USAGE.md](AI_USAGE.md) for how this project was built with Claude Code and how its output was checked. See [CLAUDE.md](CLAUDE.md) for repo conventions and gotchas if you're extending this codebase.
 
 ## Prerequisites
 
@@ -36,7 +36,7 @@ Stop both with `Ctrl+C`.
 
 ## Sample logins
 
-`npm run setup` seeds one user per role, all with the same password:
+`npm run setup` seeds the full sample data set from SPEC.md section 6 (60 students across 3 classes, 4 teachers, 1 admin, and a mix of quizzes). These three documented logins all share the same password:
 
 | Role    | Username                    | Password      |
 |---------|------------------------------|---------------|
@@ -49,10 +49,12 @@ Students log in with their student ID; teachers and the admin log in with email 
 ## Running tests
 
 ```bash
-npm test
+npm test         # server: Vitest + Supertest against one freshly-seeded ephemeral SQLite DB
+npm run test:e2e # Playwright: RTL rendering, 360px mobile layout, name display (starts the dev stack if needed)
+npm run test:smoke # clones the current branch into a temp dir and proves the one-command path above works from scratch
 ```
 
-Runs the server's automated test suite (Vitest + Supertest against an ephemeral SQLite database). See [PLAN.md](PLAN.md) for what each phase's tests cover.
+See [PLAN.md](PLAN.md) for what each phase's named tests cover.
 
 ## Project structure
 
@@ -63,12 +65,16 @@ server/           Express + TypeScript API, Prisma ORM, SQLite
   tests/          Vitest + Supertest tests
 client/           React + TypeScript + Vite, Tailwind CSS
   src/            pages, components, auth context, API client
+e2e/              Playwright end-to-end tests (RTL, mobile layout, name display)
+scripts/          smoke-test.sh — clean-checkout verification of the one-command path
 SPEC.md           what the system does and why, with decisions on every gap in the brief
 PLAN.md           tech stack choices and the phased build plan
+DECISIONS.md      assumptions, extras built, what was left out, what's next
+AI_USAGE.md       how this project was built with AI and how its output was checked
+CLAUDE.md         repo conventions and gotchas for future Claude Code sessions
 ```
 
 ## Notes
 
 - The database is a local SQLite file (`server/prisma/dev.db`), created by `npm run setup` and ignored by git. Re-run `npm run setup` at any time to reset it to the seeded sample data.
 - `server/.env` is your local config (copied from `server/.env.example`) and is git-ignored — never commit it.
-- `DECISIONS.md`, `AI_USAGE.md`, and a committed `CLAUDE.md` are required by the assessment brief this project is built against and will be added before submission.

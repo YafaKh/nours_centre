@@ -1,5 +1,5 @@
 // FR-030-036: sum signed per-question contributions, then floor once at the quiz total —
-// not per-question (PLAN.md decision #2).
+// not per-question (DECISIONS.md §2 #2).
 
 export interface ScoredQuestion {
   id: string;

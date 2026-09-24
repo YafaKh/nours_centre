@@ -75,7 +75,8 @@ router.get('/quizzes', async (req, res) => {
   const quizzes = await prisma.quiz.findMany({
     where,
     include: quizListInclude,
-    orderBy: { createdAt: 'desc' },
+    // Farthest close date first — same ordering shown to students (routes/student.ts).
+    orderBy: { closeAt: 'desc' },
   });
   res.json({ quizzes: quizzes.map(quizListShape) });
 });
@@ -202,7 +203,7 @@ router.get('/import/quiz-questions/template', (_req, res) => {
   res.send(xlsx);
 });
 
-// FR-055/PLAN.md decision #8: carries only the question list — the quiz shell must already
+// FR-055/DECISIONS.md §2 #8: carries only the question list — the quiz shell must already
 // exist (created via the form above) — and is gated by the same lock rule as manual edits
 // (FR-014), so it can't be used to bypass it. A valid file fully replaces the question set
 // (decision #8: there's no stable row identity to diff/merge against).

@@ -293,7 +293,7 @@ export function QuizEditor() {
                     </tr>
                   </thead>
                   <tbody>
-                    {attemptsQuery.data.attempts.map((a) => (
+                    {attemptsQuery.data.attempts.slice(0, 5).map((a) => (
                       <tr key={a.id} className="border-b border-gray-100">
                         <td dir="auto" className="py-1.5 pe-3">
                           {a.student.nameAr || '—'}
@@ -308,6 +308,15 @@ export function QuizEditor() {
                   </tbody>
                 </table>
               </div>
+            )}
+            {attemptsQuery.data && attemptsQuery.data.attempts.length > 5 && (
+              <p className="text-sm text-gray-500">
+                Showing 5 of {attemptsQuery.data.attempts.length} students. See{' '}
+                <Link to={`/teacher/quizzes/${id}/results`} className="text-blue-600 hover:underline">
+                  full results
+                </Link>{' '}
+                for the rest.
+              </p>
             )}
           </div>
         )}

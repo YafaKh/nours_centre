@@ -1,4 +1,4 @@
-// Quiz-question import (FR-055 / PLAN.md decision #8). Column layout is fixed by the spec:
+// Quiz-question import (FR-055 / DECISIONS.md §2 #8). Column layout is fixed by the spec:
 // question_no, question_text, option_a..d, correct (A-D), points. Rather than duplicating the
 // "exactly four options, exactly one correct" rule, each row is converted into the same shape
 // quiz/validation.ts's validateQuestions already checks, and that validator is reused as-is.

@@ -1,6 +1,6 @@
 // Pure, framework-free validators for quiz authoring. Kept independent of Express/Prisma
 // so they're trivially unit-testable and so Phase 6's spreadsheet import can reuse the
-// question/option rules without duplicating them (PLAN.md decision #8).
+// question/option rules without duplicating them (DECISIONS.md §2 #8).
 
 export interface QuizShellInput {
   title?: unknown;
