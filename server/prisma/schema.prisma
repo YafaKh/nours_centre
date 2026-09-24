@@ -59,7 +59,7 @@ model Session {
 
 // status is one of "DRAFT" | "PUBLISHED" (plain string column, same convention as User.role).
 // Once any Attempt exists for a quiz, the whole quiz (shell + questions + options) is locked —
-// see src/quiz/lock.ts — per FR-014/decision #5 in PLAN.md.
+// see src/quiz/lock.ts — per FR-014.
 model Quiz {
   id               String   @id @default(cuid())
   ownerId          String
@@ -116,7 +116,7 @@ model Option {
 }
 
 // The table exists from Phase 2's migration on so the single-attempt unique constraint and
-// the lock rule (FR-014) never need a later, riskier migration — see PLAN.md decision #5.
+// the lock rule (FR-014) never need a later, riskier migration — see DECISIONS.md §2 #5.
 model Attempt {
   id             String    @id @default(cuid())
   studentId      String

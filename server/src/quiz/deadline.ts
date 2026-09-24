@@ -1,5 +1,5 @@
 // Shared by the answer-write endpoint (Phase 3) and the submit/auto-finalize endpoints
-// (Phase 4), per PLAN.md decision #4, so the grace period is never retrofitted.
+// (Phase 4), per DECISIONS.md §2 #4, so the grace period is never retrofitted.
 
 export const GRACE_PERIOD_MS = 10_000;
 

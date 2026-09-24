@@ -15,7 +15,7 @@ import { prisma } from '../src/db.js';
 const app = createApp();
 const PREFIX = 'sweep-';
 
-describe('sweep-job (PLAN.md decision #1): the sweep finalizes expired attempts with zero client requests', () => {
+describe('sweep-job (DECISIONS.md §2 #1): the sweep finalizes expired attempts with zero client requests', () => {
   let classId: string;
   let teacherCookie: string[];
   let quizId: string;

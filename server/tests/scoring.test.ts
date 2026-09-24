@@ -46,7 +46,7 @@ describe('scoring (FR-030-036): sum signed per-question contributions, then floo
     expect(computeScore(questions, answers, false, 0)).toBe(0);
   });
 
-  it('mixed: the wrong-answer penalty nets against the correct-answer points before the floor (FR-033/PLAN decision #2)', () => {
+  it('mixed: the wrong-answer penalty nets against the correct-answer points before the floor (FR-033/DECISIONS.md §2 #2)', () => {
     // q1 correct: +4. q2 wrong, penalty 0.25 of 4 points = -1. Net before floor: 3.
     const questions = [q('q1', 4, 0), q('q2', 4, 1)];
     const answers = new Map([
@@ -59,7 +59,7 @@ describe('scoring (FR-030-036): sum signed per-question contributions, then floo
   it('floors once at the quiz total, not per question', () => {
     // q1 wrong on a 12-point question, penalty 0.25 -> -3. q2 correct: +2. Sum before floor: -1 -> 0.
     // A PER-QUESTION floor would instead floor q1's -3 to 0 individually and give a total of 2 —
-    // this proves the floor is applied once, at the end, to the summed total (PLAN.md decision #2).
+    // this proves the floor is applied once, at the end, to the summed total (DECISIONS.md §2 #2).
     const questions = [q('q1', 12, 0), q('q2', 2, 1)];
     const answers = new Map([
       ['q1', 'q1-opt1'], // wrong

@@ -31,7 +31,8 @@ export function QuizTaking() {
   const attemptQuery = useQuery({
     queryKey,
     queryFn: () => startOrResumeAttempt(id!),
-    refetchInterval: 30_000,
+    // No need to keep polling once submitted — there's nothing left to resync.
+    refetchInterval: (query) => (query.state.data?.submittedAt ? false : 30_000),
   });
 
   const [now, setNow] = useState(() => Date.now());
@@ -138,7 +139,7 @@ export function QuizTaking() {
           <span dir="auto" className="truncate">
             {attempt.title}
           </span>
-          <span className="shrink-0">{timeUp ? 'Time is up' : formatRemaining(remainingMs ?? 0)}</span>
+          <span className="shrink-0">{submitted ? 'Submitted' : timeUp ? 'Time is up' : formatRemaining(remainingMs ?? 0)}</span>
         </div>
 
         {submitted && (

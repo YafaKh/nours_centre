@@ -32,13 +32,17 @@ function windowStatus(quiz: { openAt: Date; closeAt: Date }, now: Date): 'UPCOMI
 }
 
 // Never includes isCorrect (FR-028): correct answers are never sent before the attempt is
-// submitted.
+// submitted. Once an attempt is submitted (manually or auto), the question/answer content is
+// dropped from the payload entirely — a student cannot reopen and re-read a finished exam
+// (only its score), whether that's a fresh submission's own response or a later revisit of the
+// same attempt.
 function attemptPayload(
   attempt: { id: string; startedAt: Date; deadline: Date; submittedAt: Date | null; submissionType: string | null; score: number | null },
   quiz: { id: string; title: string; timeLimitMinutes: number; negativeMarking: boolean; penaltyFraction: number },
   questions: { id: string; order: number; text: string; points: number; options: { id: string; order: number; text: string }[] }[],
   answers: { questionId: string; optionId: string }[],
 ) {
+  const submitted = attempt.submittedAt !== null;
   return {
     id: attempt.id,
     quizId: quiz.id,
@@ -51,14 +55,16 @@ function attemptPayload(
     submittedAt: attempt.submittedAt,
     submissionType: attempt.submissionType,
     score: attempt.score,
-    questions: questions.map((q) => ({
-      id: q.id,
-      order: q.order,
-      text: q.text,
-      points: q.points,
-      options: q.options.map((o) => ({ id: o.id, order: o.order, text: o.text })),
-    })),
-    answers: Object.fromEntries(answers.map((a) => [a.questionId, a.optionId])),
+    questions: submitted
+      ? []
+      : questions.map((q) => ({
+          id: q.id,
+          order: q.order,
+          text: q.text,
+          points: q.points,
+          options: q.options.map((o) => ({ id: o.id, order: o.order, text: o.text })),
+        })),
+    answers: submitted ? {} : Object.fromEntries(answers.map((a) => [a.questionId, a.optionId])),
   };
 }
 
@@ -77,8 +83,12 @@ router.get('/quizzes', async (req, res) => {
   const now = new Date();
   const quizzes = await prisma.quiz.findMany({
     where: { status: 'PUBLISHED', classes: { some: { classId: student.classId } } },
-    include: { attempts: { where: { studentId: student.id } } },
-    orderBy: { openAt: 'asc' },
+    include: {
+      attempts: { where: { studentId: student.id } },
+      questions: { select: { points: true } },
+    },
+    // Farthest close date first — same ordering shown to teachers/admin (routes/teacher.ts).
+    orderBy: { closeAt: 'desc' },
   });
 
   // Lazy finalize-on-read (FR-025) so the dashboard reflects an expired attempt immediately,
@@ -98,6 +108,7 @@ router.get('/quizzes', async (req, res) => {
         closeAt: quiz.closeAt,
         negativeMarking: quiz.negativeMarking,
         windowStatus: windowStatus(quiz, now),
+        maxScore: quiz.questions.reduce((sum, q) => sum + q.points, 0),
         attempt: attempt
           ? {
               id: attempt.id,

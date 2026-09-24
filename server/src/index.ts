@@ -13,7 +13,7 @@ app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });
 
-// PLAN.md decision #1: best-effort sweep for dashboard freshness, on top of the
+// DECISIONS.md §2 #1: best-effort sweep for dashboard freshness, on top of the
 // finalize-on-read/write that already runs on every relevant request. Not run inside
 // createApp()/tests, which finalize deterministically via direct calls instead.
 startAutoSubmitSweep();

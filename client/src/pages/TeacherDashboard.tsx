@@ -35,17 +35,22 @@ export function TeacherDashboard() {
                 to={`/teacher/quizzes/${quiz.id}`}
                 className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-400 hover:shadow-sm"
               >
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-start justify-between gap-2">
                   <span dir="auto" className="font-medium text-gray-900">
                     {quiz.title}
                   </span>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      quiz.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {quiz.status}
-                  </span>
+                  <div className="shrink-0 text-right">
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                        quiz.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {quiz.status}
+                    </span>
+                    {quiz.status === 'PUBLISHED' && (
+                      <p className="mt-1 text-xs text-gray-500">Closes {new Date(quiz.closeAt).toLocaleString()}</p>
+                    )}
+                  </div>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
                   {quiz.classes.map((c) => c.name).join(', ') || 'No classes'} · {quiz.questionCount} question

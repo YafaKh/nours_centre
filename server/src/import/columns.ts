@@ -1,6 +1,6 @@
 // Shared column-definition machinery for all three import types (students, teachers, quiz
 // questions). One definition per type drives both the validator's required-field check and the
-// "download template" endpoint (FR-052a / PLAN.md decision #9), so the two can't drift apart.
+// "download template" endpoint (FR-052a / DECISIONS.md §2 #9), so the two can't drift apart.
 
 import * as XLSX from 'xlsx';
 

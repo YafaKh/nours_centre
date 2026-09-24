@@ -176,6 +176,7 @@ export interface StudentQuizListItem {
   closeAt: string;
   negativeMarking: boolean;
   windowStatus: QuizWindowStatus;
+  maxScore: number;
   attempt: StudentAttemptSummary | null;
 }
 
